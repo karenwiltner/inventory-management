@@ -1,21 +1,28 @@
 <template>
   <div class="profile-menu">
     <button
+      type="button"
       class="profile-button"
+      :class="{ 'is-collapsed': collapsed }"
+      :aria-expanded="isDropdownOpen"
+      :title="collapsed ? currentUser.name : null"
       @click="toggleDropdown"
       @blur="handleBlur"
     >
       <div class="avatar">
         {{ getInitials(currentUser.name) }}
       </div>
-      <span class="profile-name">{{ currentUser.name }}</span>
+      <span class="profile-name" :class="{ 'visually-hidden': collapsed }">{{ currentUser.name }}</span>
       <svg
+        v-if="!collapsed"
         class="chevron"
         :class="{ 'chevron-open': isDropdownOpen }"
         width="16"
         height="16"
         viewBox="0 0 16 16"
         fill="none"
+        aria-hidden="true"
+        focusable="false"
       >
         <path d="M4 6L8 10L12 6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
       </svg>
@@ -81,6 +88,13 @@ import { useI18n } from '../composables/useI18n'
 const { currentUser, logout, getInitials } = useAuth()
 const { t } = useI18n()
 
+defineProps({
+  collapsed: {
+    type: Boolean,
+    default: false
+  }
+})
+
 const isDropdownOpen = ref(false)
 const emit = defineEmits(['show-profile-details', 'show-tasks'])
 
@@ -120,27 +134,51 @@ const handleLogout = () => {
   position: relative;
 }
 
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
 .profile-button {
   display: flex;
   align-items: center;
-  gap: 0.625rem;
-  padding: 0.5rem 0.875rem;
-  background: white;
-  border: 1px solid #e2e8f0;
-  border-radius: 8px;
+  gap: var(--space-3);
+  width: 100%;
+  height: 40px;
+  padding: 0 var(--space-2);
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-md);
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: background-color var(--transition-fast);
   font-family: inherit;
 }
 
 .profile-button:hover {
-  background: #f8fafc;
-  border-color: #cbd5e1;
+  background: var(--color-surface-muted);
+}
+
+.profile-button:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
+.profile-button.is-collapsed {
+  justify-content: center;
+  padding: 0;
 }
 
 .avatar {
   width: 32px;
   height: 32px;
+  flex-shrink: 0;
   border-radius: 50%;
   background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%);
   color: white;
@@ -153,30 +191,41 @@ const handleLogout = () => {
 }
 
 .profile-name {
-  font-size: 0.875rem;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: left;
+  font-size: var(--text-base);
   font-weight: 500;
-  color: #0f172a;
+  color: var(--color-text);
 }
 
 .chevron {
-  color: #64748b;
-  transition: transform 0.2s ease;
+  flex-shrink: 0;
+  color: var(--color-text-muted);
+  transition: transform var(--transition-base);
 }
 
 .chevron-open {
   transform: rotate(180deg);
 }
 
+/* Opens to the right of the sidebar, bottom edges aligned. The sidebar footer sits at
+   the bottom of the viewport and is not an overflow container, so this is never clipped.
+   Offset is space-4 (not space-2) to clear the footer padding and land just past the
+   sidebar's right edge. */
 .dropdown-menu {
   position: absolute;
-  top: calc(100% + 0.5rem);
-  right: 0;
+  left: calc(100% + var(--space-4));
+  bottom: 0;
   min-width: 280px;
-  background: white;
-  border: 1px solid #e2e8f0;
-  border-radius: 10px;
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
-  z-index: 1000;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+  z-index: var(--z-dropdown);
   overflow: hidden;
 }
 
@@ -277,5 +326,15 @@ const handleLogout = () => {
   border-radius: 12px;
   min-width: 20px;
   text-align: center;
+}
+
+/* Phone drawer: a 390px viewport has no room to the right of a 256px drawer, so open upward.
+   Tablets keep the sideways placement of the desktop sidebar. */
+@media (max-width: 767.98px) {
+  .dropdown-menu {
+    left: 0;
+    bottom: calc(100% + var(--space-2));
+    min-width: 100%;
+  }
 }
 </style>

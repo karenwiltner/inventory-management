@@ -1,7 +1,11 @@
 <template>
   <div class="language-switcher">
     <button
+      type="button"
       class="language-button"
+      :class="{ 'is-collapsed': collapsed }"
+      :aria-expanded="isDropdownOpen"
+      :title="collapsed ? localeName : null"
       @click="toggleDropdown"
       @blur="handleBlur"
     >
@@ -11,20 +15,25 @@
         viewBox="0 0 20 20"
         fill="none"
         class="globe-icon"
+        aria-hidden="true"
+        focusable="false"
       >
-        <circle cx="10" cy="10" r="7.5" stroke="currentColor" stroke-width="1.5"/>
-        <path d="M3 10H17" stroke="currentColor" stroke-width="1.5"/>
-        <path d="M10 3C10 3 7.5 5.5 7.5 10C7.5 14.5 10 17 10 17" stroke="currentColor" stroke-width="1.5"/>
-        <path d="M10 3C10 3 12.5 5.5 12.5 10C12.5 14.5 10 17 10 17" stroke="currentColor" stroke-width="1.5"/>
+        <circle cx="10" cy="10" r="7.5" stroke="currentColor" stroke-width="1.75"/>
+        <path d="M3 10H17" stroke="currentColor" stroke-width="1.75"/>
+        <path d="M10 3C10 3 7.5 5.5 7.5 10C7.5 14.5 10 17 10 17" stroke="currentColor" stroke-width="1.75"/>
+        <path d="M10 3C10 3 12.5 5.5 12.5 10C12.5 14.5 10 17 10 17" stroke="currentColor" stroke-width="1.75"/>
       </svg>
-      <span class="language-label">{{ localeName }}</span>
+      <span class="language-label" :class="{ 'visually-hidden': collapsed }">{{ localeName }}</span>
       <svg
+        v-if="!collapsed"
         class="chevron"
         :class="{ 'chevron-open': isDropdownOpen }"
         width="16"
         height="16"
         viewBox="0 0 16 16"
         fill="none"
+        aria-hidden="true"
+        focusable="false"
       >
         <path d="M4 6L8 10L12 6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
       </svg>
@@ -34,6 +43,7 @@
       <button
         v-for="locale in availableLocales"
         :key="locale"
+        type="button"
         class="dropdown-item"
         :class="{ active: currentLocale === locale }"
         @mousedown.prevent="selectLanguage(locale)"
@@ -57,6 +67,13 @@
 <script setup>
 import { ref } from 'vue'
 import { useI18n } from '../composables/useI18n'
+
+defineProps({
+  collapsed: {
+    type: Boolean,
+    default: false
+  }
+})
 
 const { currentLocale, setLocale, availableLocales, localeName } = useI18n()
 
@@ -93,38 +110,63 @@ const selectLanguage = (locale) => {
   position: relative;
 }
 
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
 .language-button {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  padding: 0.5rem 0.875rem;
-  background: white;
-  border: 1px solid #e2e8f0;
-  border-radius: 8px;
+  gap: var(--space-3);
+  width: 100%;
+  height: 40px;
+  padding: 0 var(--space-3);
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-md);
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: background-color var(--transition-fast);
   font-family: inherit;
-  font-size: 0.875rem;
-  color: #334155;
+  font-size: var(--text-base);
+  color: var(--color-text-muted);
 }
 
 .language-button:hover {
-  background: #f8fafc;
-  border-color: #cbd5e1;
+  background: var(--color-surface-muted);
+  color: var(--color-text);
+}
+
+.language-button:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
+.language-button.is-collapsed {
+  justify-content: center;
+  padding: 0;
 }
 
 .globe-icon {
-  color: #64748b;
   flex-shrink: 0;
 }
 
 .language-label {
+  flex: 1;
+  text-align: left;
   font-weight: 500;
 }
 
 .chevron {
-  color: #64748b;
-  transition: transform 0.2s ease;
+  color: var(--color-text-muted);
+  transition: transform var(--transition-base);
   flex-shrink: 0;
 }
 
@@ -132,16 +174,20 @@ const selectLanguage = (locale) => {
   transform: rotate(180deg);
 }
 
+/* Opens to the right of the sidebar, bottom edges aligned. The sidebar footer sits at
+   the bottom of the viewport and is not an overflow container, so this is never clipped.
+   Offset is space-4 (not space-2) to clear the footer padding and land just past the
+   sidebar's right edge. */
 .dropdown-menu {
   position: absolute;
-  top: calc(100% + 0.5rem);
-  right: 0;
+  left: calc(100% + var(--space-4));
+  bottom: 0;
   min-width: 160px;
-  background: white;
-  border: 1px solid #e2e8f0;
-  border-radius: 10px;
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
-  z-index: 1000;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+  z-index: var(--z-dropdown);
   overflow: hidden;
 }
 
@@ -150,26 +196,26 @@ const selectLanguage = (locale) => {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 0.75rem;
-  padding: 0.75rem 1rem;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
   background: none;
   border: none;
   text-align: left;
   cursor: pointer;
-  transition: background 0.15s ease;
+  transition: background-color var(--transition-fast);
   font-family: inherit;
-  font-size: 0.875rem;
+  font-size: var(--text-base);
   font-weight: 500;
   color: #334155;
 }
 
 .dropdown-item:hover {
-  background: #f8fafc;
+  background: var(--color-bg);
 }
 
 .dropdown-item.active {
-  background: #eff6ff;
-  color: #2563eb;
+  background: var(--color-primary-soft);
+  color: var(--color-primary);
 }
 
 .language-name {
@@ -177,7 +223,17 @@ const selectLanguage = (locale) => {
 }
 
 .check-icon {
-  color: #2563eb;
+  color: var(--color-primary);
   flex-shrink: 0;
+}
+
+/* Phone drawer: a 390px viewport has no room to the right of a 256px drawer, so open upward.
+   Tablets keep the sideways placement of the desktop sidebar. */
+@media (max-width: 767.98px) {
+  .dropdown-menu {
+    left: 0;
+    bottom: calc(100% + var(--space-2));
+    min-width: 100%;
+  }
 }
 </style>

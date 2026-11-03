@@ -8,7 +8,15 @@ export default {
     demandForecast: '需要予測',
     restocking: '補充発注',
     companyName: '触媒コンポーネンツ',
-    subtitle: '在庫管理システム'
+    subtitle: '在庫管理システム',
+    reports: 'レポート',
+    groupOperations: '業務',
+    groupInsights: 'インサイト',
+    mainNavigation: 'メインナビゲーション',
+    collapseSidebar: 'サイドバーを折りたたむ',
+    expandSidebar: 'サイドバーを展開',
+    openMenu: 'メニューを開く',
+    closeMenu: 'メニューを閉じる'
   },
 
   // Dashboard

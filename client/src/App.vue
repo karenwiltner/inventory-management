@@ -1,45 +1,16 @@
 <template>
-  <div class="app">
-    <header class="top-nav">
-      <div class="nav-container">
-        <div class="logo">
-          <h1>{{ t('nav.companyName') }}</h1>
-          <span class="subtitle">{{ t('nav.subtitle') }}</span>
-        </div>
-        <nav class="nav-tabs">
-          <router-link to="/" :class="{ active: $route.path === '/' }">
-            {{ t('nav.overview') }}
-          </router-link>
-          <router-link to="/inventory" :class="{ active: $route.path === '/inventory' }">
-            {{ t('nav.inventory') }}
-          </router-link>
-          <router-link to="/orders" :class="{ active: $route.path === '/orders' }">
-            {{ t('nav.orders') }}
-          </router-link>
-          <router-link to="/spending" :class="{ active: $route.path === '/spending' }">
-            {{ t('nav.finance') }}
-          </router-link>
-          <router-link to="/demand" :class="{ active: $route.path === '/demand' }">
-            {{ t('nav.demandForecast') }}
-          </router-link>
-          <router-link to="/restocking" :class="{ active: $route.path === '/restocking' }">
-            {{ t('nav.restocking') }}
-          </router-link>
-          <router-link to="/reports" :class="{ active: $route.path === '/reports' }">
-            Reports
-          </router-link>
-        </nav>
-        <LanguageSwitcher />
-        <ProfileMenu
-          @show-profile-details="showProfileDetails = true"
-          @show-tasks="showTasks = true"
-        />
-      </div>
-    </header>
-    <FilterBar />
-    <main class="main-content">
-      <router-view />
-    </main>
+  <div class="app" :class="{ 'sidebar-collapsed': sidebarCollapsed }">
+    <AppSidebar
+      @show-profile-details="showProfileDetails = true"
+      @show-tasks="showTasks = true"
+      @update:collapsed="sidebarCollapsed = $event"
+    />
+    <div class="app-content">
+      <FilterBar />
+      <main class="main-content">
+        <router-view />
+      </main>
+    </div>
 
     <ProfileDetailsModal
       :is-open="showProfileDetails"
@@ -62,24 +33,23 @@ import { ref, onMounted, computed } from 'vue'
 import { api } from './api'
 import { useAuth } from './composables/useAuth'
 import { useI18n } from './composables/useI18n'
+import AppSidebar from './components/AppSidebar.vue'
 import FilterBar from './components/FilterBar.vue'
-import ProfileMenu from './components/ProfileMenu.vue'
 import ProfileDetailsModal from './components/ProfileDetailsModal.vue'
 import TasksModal from './components/TasksModal.vue'
-import LanguageSwitcher from './components/LanguageSwitcher.vue'
 
 export default {
   name: 'App',
   components: {
+    AppSidebar,
     FilterBar,
-    ProfileMenu,
     ProfileDetailsModal,
-    TasksModal,
-    LanguageSwitcher
+    TasksModal
   },
   setup() {
     const { currentUser } = useAuth()
     const { t } = useI18n()
+    const sidebarCollapsed = ref(false)
     const showProfileDetails = ref(false)
     const showTasks = ref(false)
     const apiTasks = ref([])
@@ -153,6 +123,7 @@ export default {
 
     return {
       t,
+      sidebarCollapsed,
       showProfileDetails,
       showTasks,
       tasks,
@@ -173,161 +144,115 @@ export default {
 
 body {
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-  background: #f8fafc;
-  color: #1e293b;
+  background: var(--color-bg);
+  color: var(--color-text);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
+/* Column 1 is the AppSidebar shell, an empty spacer (the sidebar itself is fixed).
+   minmax(0, 1fr) lets the content column shrink below its min-content width, otherwise
+   wide tables would push the whole page sideways. */
 .app {
+  display: grid;
+  grid-template-columns: var(--sidebar-current-w, var(--sidebar-w)) minmax(0, 1fr);
+  min-height: 100dvh;
+  transition: grid-template-columns var(--transition-base);
+}
+
+.app.sidebar-collapsed {
+  --sidebar-current-w: var(--sidebar-w-collapsed);
+}
+
+.app-content {
   display: flex;
   flex-direction: column;
-  min-height: 100vh;
-}
-
-.top-nav {
-  background: #ffffff;
-  border-bottom: 1px solid #e2e8f0;
-  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05);
-  position: sticky;
-  top: 0;
-  z-index: 100;
-}
-
-.nav-container {
-  max-width: 1600px;
-  margin: 0 auto;
-  display: flex;
-  align-items: center;
-  padding: 0 2rem;
-  height: 70px;
-}
-
-.nav-container > .nav-tabs {
-  margin-left: auto;
-  margin-right: 1rem;
-}
-
-.nav-container > .language-switcher {
-  margin-right: 1rem;
-}
-
-.logo {
-  display: flex;
-  align-items: baseline;
-  gap: 0.75rem;
-}
-
-.logo h1 {
-  font-size: 1.375rem;
-  font-weight: 700;
-  color: #0f172a;
-  letter-spacing: -0.025em;
-}
-
-.subtitle {
-  font-size: 0.813rem;
-  color: #64748b;
-  font-weight: 400;
-  padding-left: 0.75rem;
-  border-left: 1px solid #e2e8f0;
-}
-
-.nav-tabs {
-  display: flex;
-  gap: 0.25rem;
-}
-
-.nav-tabs a {
-  padding: 0.625rem 1.25rem;
-  color: #64748b;
-  text-decoration: none;
-  font-weight: 500;
-  font-size: 0.938rem;
-  border-radius: 6px;
-  transition: all 0.2s ease;
-  position: relative;
-}
-
-.nav-tabs a:hover {
-  color: #0f172a;
-  background: #f1f5f9;
-}
-
-.nav-tabs a.active {
-  color: #2563eb;
-  background: #eff6ff;
-}
-
-.nav-tabs a.active::after {
-  content: '';
-  position: absolute;
-  bottom: -1px;
-  left: 0;
-  right: 0;
-  height: 2px;
-  background: #2563eb;
+  min-width: 0;
 }
 
 .main-content {
   flex: 1;
-  max-width: 1600px;
   width: 100%;
+  max-width: var(--content-max);
   margin: 0 auto;
-  padding: 1.5rem 2rem;
+  padding: var(--space-6) var(--space-8);
+}
+
+/* Below 768px the sidebar is an off-canvas drawer and a fixed top bar takes its place,
+   so the content starts below that bar. On tablets (768-1023px) the sidebar stays an icon
+   rail and AppSidebar reports it as collapsed, so the two-column grid keeps 72px for it. */
+@media (max-width: 767.98px) {
+  /* The empty sidebar shell becomes its own zero-height row. 1fr on the content row keeps
+     leftover min-height from being split onto the shell row. */
+  .app {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto 1fr;
+  }
+
+  .app-content {
+    padding-top: var(--topbar-h);
+  }
+}
+
+@media (max-width: 767.98px) {
+  .main-content {
+    padding: var(--space-4);
+  }
 }
 
 .page-header {
-  margin-bottom: 1.5rem;
+  margin-bottom: var(--space-6);
 }
 
 .page-header h2 {
-  font-size: 1.875rem;
+  font-size: var(--text-2xl);
   font-weight: 700;
-  color: #0f172a;
-  margin-bottom: 0.375rem;
-  letter-spacing: -0.025em;
+  line-height: 1.2;
+  color: var(--color-text);
+  margin-bottom: var(--space-1);
+  letter-spacing: -0.02em;
 }
 
 .page-header p {
-  color: #64748b;
-  font-size: 0.938rem;
+  color: var(--color-text-muted);
+  font-size: var(--text-base);
 }
 
 .stats-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap: 1.25rem;
-  margin-bottom: 1.5rem;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: var(--space-6);
+  margin-bottom: var(--space-6);
 }
 
+/* Hover changes shadow and border color only, so cards never shift the layout. */
 .stat-card {
-  background: white;
-  padding: 1.25rem;
-  border-radius: 10px;
-  border: 1px solid #e2e8f0;
-  transition: all 0.2s ease;
+  background: var(--color-surface);
+  padding: var(--space-6);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--color-border);
+  box-shadow: var(--shadow-sm);
+  transition: box-shadow var(--transition-fast), border-color var(--transition-fast);
 }
 
 .stat-card:hover {
   border-color: #cbd5e1;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+  box-shadow: var(--shadow-md);
 }
 
 .stat-label {
-  color: #64748b;
-  font-size: 0.875rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  margin-bottom: 0.625rem;
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+  font-weight: 500;
+  margin-bottom: var(--space-2);
 }
 
 .stat-value {
-  font-size: 2.25rem;
-  font-weight: 700;
-  color: #0f172a;
-  letter-spacing: -0.025em;
+  font-size: var(--text-2xl);
+  font-weight: 600;
+  line-height: 1.2;
+  color: var(--color-text);
+  letter-spacing: -0.02em;
 }
 
 .stat-card.warning .stat-value {
@@ -343,111 +268,115 @@ body {
 }
 
 .stat-card.info .stat-value {
-  color: #2563eb;
+  color: var(--color-primary);
 }
 
 .card {
-  background: white;
-  border-radius: 10px;
-  padding: 1.25rem;
-  border: 1px solid #e2e8f0;
-  margin-bottom: 1.25rem;
+  background: var(--color-surface);
+  border-radius: var(--radius-lg);
+  padding: var(--space-6);
+  border: 1px solid var(--color-border);
+  box-shadow: var(--shadow-sm);
+  margin-bottom: var(--space-6);
 }
 
+/* Negative margins pull the header to the card edges so its bottom border spans the full width. */
 .card-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 1rem;
-  padding-bottom: 0.875rem;
-  border-bottom: 1px solid #e2e8f0;
+  gap: var(--space-4);
+  margin: calc(-1 * var(--space-6)) calc(-1 * var(--space-6)) var(--space-6);
+  padding: var(--space-4) var(--space-6);
+  border-bottom: 1px solid var(--color-border);
 }
 
 .card-title {
-  font-size: 1.125rem;
-  font-weight: 700;
-  color: #0f172a;
-  letter-spacing: -0.025em;
+  font-size: var(--text-md);
+  font-weight: 600;
+  color: var(--color-text);
+  letter-spacing: -0.02em;
 }
 
 .table-container {
+  max-width: 100%;
   overflow-x: auto;
 }
 
 table {
   width: 100%;
   border-collapse: collapse;
+  font-variant-numeric: tabular-nums;
 }
 
 thead {
-  background: #f8fafc;
-  border-top: 1px solid #e2e8f0;
-  border-bottom: 1px solid #e2e8f0;
+  background: var(--color-surface-muted);
+  border-bottom: 1px solid var(--color-border);
 }
 
 th {
   text-align: left;
-  padding: 0.5rem 0.75rem;
+  padding: var(--space-3);
   font-weight: 600;
   color: #475569;
-  font-size: 0.75rem;
+  font-size: var(--text-xs);
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.04em;
 }
 
 td {
-  padding: 0.5rem 0.75rem;
-  border-top: 1px solid #f1f5f9;
+  padding: var(--space-3);
+  border-bottom: 1px solid var(--color-surface-muted);
   color: #334155;
-  font-size: 0.875rem;
+  font-size: var(--text-base);
+  line-height: 1.25rem;
+}
+
+tbody tr:last-child td {
+  border-bottom: none;
 }
 
 tbody tr {
-  transition: background-color 0.15s ease;
+  transition: background-color var(--transition-fast);
 }
 
 tbody tr:hover {
-  background: #f8fafc;
+  background: var(--color-bg);
 }
 
 .badge {
   display: inline-block;
-  padding: 0.313rem 0.75rem;
-  border-radius: 6px;
-  font-size: 0.75rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.025em;
+  padding: var(--space-1) var(--space-3);
+  border-radius: 9999px;
+  font-size: var(--text-xs);
+  font-weight: 500;
+  line-height: 1.25;
+  white-space: nowrap;
 }
 
-.badge.success {
-  background: #d1fae5;
-  color: #065f46;
-}
-
-.badge.warning {
-  background: #fed7aa;
-  color: #92400e;
-}
-
-.badge.danger {
-  background: #fecaca;
-  color: #991b1b;
-}
-
-.badge.info {
-  background: #dbeafe;
-  color: #1e40af;
-}
-
+.badge.success,
 .badge.increasing {
   background: #d1fae5;
   color: #065f46;
 }
 
-.badge.decreasing {
-  background: #fecaca;
+.badge.warning,
+.badge.medium {
+  background: #ffedd5;
+  color: #9a3412;
+}
+
+.badge.danger,
+.badge.decreasing,
+.badge.high {
+  background: #fee2e2;
   color: #991b1b;
+}
+
+.badge.info,
+.badge.low {
+  background: #dbeafe;
+  color: #1e40af;
 }
 
 .badge.stable {
@@ -455,35 +384,41 @@ tbody tr:hover {
   color: #3730a3;
 }
 
-.badge.high {
-  background: #fecaca;
-  color: #991b1b;
-}
-
-.badge.medium {
-  background: #fed7aa;
-  color: #92400e;
-}
-
-.badge.low {
-  background: #dbeafe;
-  color: #1e40af;
-}
-
 .loading {
   text-align: center;
-  padding: 3rem;
-  color: #64748b;
-  font-size: 0.938rem;
+  padding: var(--space-12);
+  color: var(--color-text-muted);
+  font-size: var(--text-base);
 }
 
 .error {
   background: #fef2f2;
   border: 1px solid #fecaca;
   color: #991b1b;
-  padding: 1rem;
-  border-radius: 8px;
-  margin: 1rem 0;
-  font-size: 0.938rem;
+  padding: var(--space-4);
+  border-radius: var(--radius-md);
+  margin: var(--space-4) 0;
+  font-size: var(--text-base);
+}
+
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+summary:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
+/* A box-shadow ring looks odd around a range track, so use an outline there. */
+input[type='range'] {
+  accent-color: var(--color-primary);
+}
+
+input[type='range']:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+  box-shadow: none;
 }
 </style>
